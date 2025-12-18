@@ -1,0 +1,77 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+  relative-path-mode: gitroot
+
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+    sarif:
+      path: golangci-lint.sarif
+
+linters:
+  default: standard
+
+  enable:
+    - gosec # Detects SQL injections
+    - bodyclose # Checks http.Response.Body closure
+    - rowserrcheck # Checks rows.Err() after Rows iteration
+    - sqlclosecheck # Prevents database connection leaks
+    - sloglint # Linter for slog
+    - forbidigo # Forbids fmt.Print*, println, enforces slog usage instead of debug-print
+    - depguard # Import policy: forbids logrus/log, enforces slog
+
+  exclusions:
+    generated: strict
+    warn-unused: true
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+    rules:
+      - linters: [lll]
+        source: "^//go:generate "
+
+  settings:
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: "^(fmt\\.Print(|f|ln)|print|println)$"
+          msg: "Debug print is forbidden! Use log/slog for logging."
+
+    depguard:
+      rules:
+        main:
+          files:
+            - "$all"
+          deny:
+            - pkg: "log$"
+              desc: "Use log/slog for logging."
+            - pkg: "github.com/sirupsen/logrus$"
+              desc: "Use log/slog for logging."
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+    - gofumpt
+
+  settings:
+    goimports:
+      local-prefixes:
+        - "github.com/idakhno/event-scheduler"
+
+  exclusions:
+    generated: strict
+    warn-unused: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
